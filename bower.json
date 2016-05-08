@@ -1,0 +1,24 @@
+{
+  "name": "betfriend",
+  "description": "Formula 1 race prediction app",
+  "main": "",
+  "authors": [
+    "jon-wade <jonwadeuk@gmail.com>"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "angular": "^1.5.5",
+    "angular-mocks": "^1.5.5",
+    "angular-route": "^1.5.5",
+    "angular-animate": "^1.5.5"
+  }
+}
