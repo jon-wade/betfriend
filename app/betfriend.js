@@ -13,6 +13,31 @@ app.factory('ergast', ['$http', function($http){
         }
     }
 }]);
+app.factory('pointsLookup', [function(){
+
+    return {
+        getScore: function(position){
+            if(position>10){
+                return 0;
+            }
+            else {
+                var table = {
+                    '1': 25,
+                    '2': 18,
+                    '3': 15,
+                    '4': 12,
+                    '5': 10,
+                    '6': 8,
+                    '7': 6,
+                    '8': 4,
+                    '9': 2,
+                    '10': 1
+                };
+                return table[position];
+            }
+        }
+    }
+}]);
 app.config(function($routeProvider) {
     $routeProvider
         .when('/', {
@@ -98,7 +123,7 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
 
 
 }]);
-app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', function($scope, ergast, $rootScope, $q){
+app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', 'pointsLookup', function($scope, ergast, $rootScope, $q, pointsLookup){
 
     //switch on the back button
     $rootScope.bckHide = false;
@@ -143,13 +168,13 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', functi
         console.log('ALL DATA RETURNED', $scope.circuitHistory);
         //work out score for each driver based on historic track record at circuit
 
-        //first create a driver data storage object from the current driverArr
+        //first create a driverData storage object from the current driverArr to store all data in one place (key: driverId)
         $scope.driverDataObj = {};
         for (var x=0; x<$scope.driverArr.length; x++){
             $scope.driverDataObj[$scope.driverArr[x].driverId] = $scope.driverArr[x];
         }
-        //append the historic track performance to the object
 
+        //then append the historic track performance to the object
         for (var i=0; i<$scope.circuitHistory.length; i++){
 
             //some drivers don't have any history at the track, so check for empty arrays
@@ -162,22 +187,102 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', functi
             }
         }
 
-        //print out the historic race results for each driver in the race
+        //create driver score based on historic performance
 
         for (var driver in $scope.driverDataObj){
+
+            var trackHistoryScore = 0;
+
+            //debug code
             console.log(driver);
+
             if($scope.driverDataObj[driver].trackHistory == undefined){
+
+                //if the driver doesn't have any history returned, create a placeholder in the object property
+                //so we don't come unstuck trying to call a property that doesn't exist later on
                 $scope.driverDataObj[driver].trackHistory = [];
+
+                //also give the driver a trackHistoryScore property
+                $scope.driverDataObj[driver].trackHistoryScore = trackHistoryScore;
             }
+
             else {
+
                 for (var k = 0; k < $scope.driverDataObj[driver].trackHistory.length; k++) {
+
                     console.log('Season: ', $scope.driverDataObj[driver].trackHistory[k].season);
-                    console.log('Position: ', $scope.driverDataObj[driver].trackHistory[k].Results[0].position);
-                    //console.log(driver, $scope.driverDataObj[driver].trackHistory[k].season);
+
+                    //we only want the last 10 year's worth of track data for the algorithm
+                    var currentYear = new Date().getFullYear();
+
+                    if(parseInt($scope.driverDataObj[driver].trackHistory[k].season) < currentYear-10){
+                        //were not interested in this data
+                        console.log('Ignore this data');
+
+                    }
+                    else {
+
+                        //here we want to weight the historic performance according to our algorithm requirements
+                        console.log('Position: ', $scope.driverDataObj[driver].trackHistory[k].Results[0].position);
+                        switch(parseInt($scope.driverDataObj[driver].trackHistory[k].season)){
+                            case currentYear-1:
+                                console.log('case = ', currentYear-1);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.25);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-2:
+                                console.log('case = ', currentYear-2);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.18);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-3:
+                                console.log('case = ', currentYear-4);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.14);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-4:
+                                console.log('case = ', currentYear-4);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.12);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-5:
+                                console.log('case = ', currentYear-5);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.10);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-6:
+                                console.log('case = ', currentYear-6);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.08);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-7:
+                                console.log('case = ', currentYear-7);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.06);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-8:
+                                console.log('case = ', currentYear-8);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.04);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-9:
+                                console.log('case = ', currentYear-9);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.02);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                            case currentYear-10:
+                                console.log('case = ', currentYear-10);
+                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.01);
+                                console.log('trackHistoryScore', trackHistoryScore);
+                                break;
+                        }
+
+                        $scope.driverDataObj[driver].trackHistoryScore = trackHistoryScore;
+
+                    }
                 }
             }
         }
-
 
         console.log($scope.driverDataObj);
 
