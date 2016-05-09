@@ -1,11 +1,103 @@
-html {
-    border: 0px;
-    margin: 0px;
-    padding: 0px;
+html, body {
+    border: 0;
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 body {
+    background-color: darkgrey;
+    color: white;
+    font-family: 'Exo 2', Helvetica, sans-serif;
+}
+
+nav ul {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    background-color: black;
+    padding: 10px 0;
+}
+
+nav ul li {
+    list-style: none;
+    font-size: 0.75em;
+    padding: 0 10px;
+}
+
+nav ul li.hide {
+    color: black;
+}
+
+
+nav ul li h1 {
+    font-size: 1em;
+    margin: 0;
+    text-align: center;
+    padding: 0 10px;
+}
+
+
+div.container {
+    background-size: cover;
+    background-position: center center;
+    min-height: 100vh;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+div.image1 {
+    background-image: url('img/round-5/spanish-gp-1.jpg');
+}
+
+div.image2 {
+    background-image: url('img/round-5/spanish-gp-2.jpg');
+}
+
+
+div.container p {
+    margin: 0px;
+    padding-top: 20px;
+}
+
+div#title-block {
+    position: relative;
+    top: 125px;
+}
+
+div#title-block h1 {
+    margin: 0;
+    font-style: italic;
+}
+
+div.container button {
+    margin-top: 175px;
+    background-color: #00A000;
+    color: white;
+    font-size: 0.5em;
+    width: 100px;
+    height: 50px;
+    border: 1px solid white;
+    border-radius: 5px;
+}
+
+table#countdown {
+    font-size: 0.75em;
+    text-align: center;
+    margin: 0 auto;
+    border-collapse: collapse;
+    margin-top: 30px;
+    background-color: white;
+    color: black;
+}
+
+table#countdown td {
+    padding: 5px;
+    border: darkgrey solid 4px;
+    width: 40px;
+}
+
+table#countdown td.black {
     background-color: black;
     color: white;
 }
