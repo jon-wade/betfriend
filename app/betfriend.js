@@ -292,8 +292,8 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', 'point
 
         console.log($scope.driverDataObj);
 
-        $scope.getManufacturerHistoricData = function() {
-            console.log('MANUFACTURER DATA');
+        $scope.getDriverManufacturer = function() {
+            console.log("GETTING DRIVER'S MANUFACTURER DATA");
             return $q(function (resolve, reject) {
                 //initially need the results from the last grand prix, so we can see which driver is currently driving for which constructor
                 ergast.callAPI('http://ergast.com/api/f1/current/last/results.json').then(function (response) {
@@ -305,8 +305,21 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', 'point
                             }
                         }
                     }
-                    console.log('GOT CONSTRUCTOR DATA!');
+                    console.log("GOT DRIVER'S MANUFACTURER DATA!");
                     console.log($scope.driverDataObj);
+
+                    //Now we have the manufacturer data appended to the driverDataObj, we now need to go and get the manufacturer
+                    //performance data for the current track
+
+                    for (var driver in $scope.driverDataObj) {
+                        ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + $scope.driverDataObj[driver].manufacturer + '/results.json')
+                            .then(function (response) {
+                                console.log("GOT HISTORIC DRIVER'S MANUFACTURER DATA!");
+                                console.log(response);
+                            }, function (error) {
+                                console.log(error);
+                            });
+                    }
                     resolve();
                 }, function (error) {
                     console.log(error);
@@ -315,7 +328,9 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', 'point
             });
         };
 
-        $scope.getManufacturerHistoricData().then(function(){console.log('DONE, AGAIN!')}, function(){});
+        $scope.getDriverManufacturer().then(function(){console.log('DONE, AGAIN!');
+
+        }, function(){});
 
     }, function(){});
 
