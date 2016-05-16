@@ -37,7 +37,6 @@ nav ul li h1 {
     padding: 0 10px;
 }
 
-
 div.container {
     background-size: cover;
     background-position: center center;
@@ -45,15 +44,6 @@ div.container {
     text-align: center;
     font-size: 1.5em;
 }
-
-div.image1 {
-    background-image: url('img/round-5/spanish-gp-1.jpg');
-}
-
-div.image2 {
-    background-image: url('img/round-5/spanish-gp-2.jpg');
-}
-
 
 div.container p {
     margin: 0px;

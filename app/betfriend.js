@@ -38,6 +38,318 @@ app.factory('pointsLookup', [function(){
         }
     }
 }]);
+app.factory('getDriverData', ['ergast', '$q', function(ergast, $q){
+    console.log('GETTING DRIVER DATA');
+    return {
+        getData: function() {
+            return $q(function (resolve, reject) {
+                var driverArr = [];
+                //initially need a list of all drivers in the next grand prix
+                ergast.callAPI('http://ergast.com/api/f1/2016/5/drivers.json')
+                    .then(
+                        function (response) {
+                            //console.log('Response from driver list request for current race: ', response);
+                            driverArr = response.data.MRData.DriverTable.Drivers;
+                            resolve(driverArr);
+                        },
+                        function (error) {
+                            console.log('Error from driver list request for current race: ', error);
+                            reject();
+                        }
+                    );
+            });
+        }
+    }
+}]);
+app.factory('getDriverCircuitHistory', ['ergast', '$q', function(ergast, $q){
+    //get each drivers history at current circuit
+    console.log('GETTING DRIVER CIRCUIT HISTORY DATA');
+    return {
+        getData: function(driverId, circuitId) {
+
+            return $q(function (resolve, reject) {
+
+                ergast.callAPI('http://ergast.com/api/f1/circuits/' + circuitId + '/drivers/' + driverId + '/results.json')
+                        .then(
+                            function(response){
+                                console.log('Response from driver circuit history request call: ', response);
+                                resolve(response);
+                            }, function(error){
+                                console.log('Error from driver circuit history request call: ', error);
+                                reject();
+                            }
+                        );
+            });
+        }
+    }
+}]);
+app.factory('getDriverManufacturer', ['ergast', '$q', function(ergast, $q){
+    return {
+        getData: function(driverDataObj, driverNum){
+
+            return $q(function(resolve, reject) {
+
+                ergast.callAPI('http://ergast.com/api/f1/current/last/results.json')
+                    .then(
+                        function(response) {
+                            resolve(response);
+                        }, function(error){reject();});
+            });
+        }
+    }
+}]);
+app.factory('getManufacturerCircuitHistory', ['$q', 'ergast', '$rootScope', function($q, ergast, $rootScope){
+    return {
+        getData: function(driverDataObj, driverNum) {
+
+            return $q(function (resolve, reject) {
+                console.log(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer);
+                ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + '/results.json?limit=1000')
+                    .then(
+                        function(response){
+                            console.log('Response from ' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + ' circuit history request call: ' , response);
+                            resolve(response);
+                        }, function(error){
+                            console.log('Error from manufacturer circuit history request call: ', error);
+                            reject();
+                        }
+                    );
+            });
+        }
+    }
+}]);
+app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory', '$rootScope', 'pointsLookup', 'getDriverManufacturer', 'getManufacturerCircuitHistory', function($q, getDriverData, getDriverCircuitHistory, $rootScope, pointsLookup, getDriverManufacturer, getManufacturerCircuitHistory){
+
+    return {
+        getData: function(driverDataObj, driverNum){
+
+            return $q(function(resolve, reject){
+                getDriverData.getData()
+                    .then(function(data){
+                        console.log('Array returned from call to get the list of drivers for the current race: ', data);
+                        //create the driverDataObj
+                        driverDataObj[data[driverNum].driverId] = {};
+                        driverDataObj[data[driverNum].driverId].driverId= data[driverNum].driverId;
+                        driverDataObj[data[driverNum].driverId].familyName = data[driverNum].familyName;
+                        driverDataObj[data[driverNum].driverId].givenName = data[driverNum].givenName;
+                        driverDataObj[data[driverNum].driverId].nationality = data[driverNum].nationality;
+                        driverDataObj[data[driverNum].driverId].permanentNumber = data[driverNum].permanentNumber;
+                        return driverDataObj;
+                    })
+                    .then(function(driverDataObj){
+                        console.log('Fetching driver circuit history for ...', driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId);
+                        return getDriverCircuitHistory.getData(driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId, $rootScope.circuitId);
+                    })
+                    .then(function(success){
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season = {};
+                        for (var i=0; i<success.data.MRData.RaceTable.Races.length; i++){
+                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[0].position;
+                        }
+                        console.log('Driver data object: ', driverDataObj);
+
+                        return driverDataObj;
+                    })
+                    .then(function(driverDataObj){
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore = 0;
+
+                        for (var season in driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season){
+                            if(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season.hasOwnProperty(season)){
+                                var currentYear = new Date().getFullYear();
+                                if (parseInt(season) > currentYear -10){
+                                    //console.log(driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId);
+                                    //console.log(season);
+
+                                    switch(parseInt(season)){
+                                        case currentYear-1:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.25;
+                                            break;
+                                        case currentYear-2:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.18;
+                                            break;
+                                        case currentYear-3:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.14;
+                                            break;
+                                        case currentYear-4:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.12;
+                                            break;
+                                        case currentYear-5:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.10;
+                                            break;
+                                        case currentYear-6:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.08;
+                                            break;
+                                        case currentYear-7:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.06;
+                                            break;
+                                        case currentYear-8:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.04;
+                                            break;
+                                        case currentYear-9:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.02;
+                                            break;
+                                        case currentYear-10:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistoryScore += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].circuitHistory.season[season])) * 0.01;
+                                            break;
+                                    }
+                                }
+                                else {
+                                    //were not interested in data older than 10 years ago
+                                }
+                            }
+                        }
+                        return(driverDataObj);
+                    })
+                    .then(function(driverDataObj) {
+                        return getDriverManufacturer.getData(driverDataObj, driverNum);
+                    })
+                    .then(function(response){
+                        for  (var i=0; i<response.data.MRData.RaceTable.Races[0].Results.length; i++){
+                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == response.data.MRData.RaceTable.Races[0].Results[i].Driver.driverId){
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.constructorId;
+                                return(driverDataObj);
+                            }
+                        }
+                    })
+                    .then(function(driverDataObj){
+                        console.log('Fetching manufacturer circuit history for ...', driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId);
+                        return getManufacturerCircuitHistory.getData(driverDataObj, driverNum);
+
+                    })
+                    .then(function(success){
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1 = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2 = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season = {};
+
+
+                        for (var i=0; i<success.data.MRData.RaceTable.Races.length; i++){
+
+                            if(success.data.MRData.RaceTable.Races[i].Results[0].position != undefined) {
+
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[0].position;
+                            }
+
+                            if(success.data.MRData.RaceTable.Races[i].Results[1] != undefined) {
+
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[1].position;
+                            }
+
+
+                        }
+                        return(driverDataObj);
+
+                    })
+                    .then(function(driverDataObj){
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore = {};
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 = 0;
+
+                        for (var season in driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season){
+                            if(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season.hasOwnProperty(season)){
+                                var currentYear = new Date().getFullYear();
+                                if (parseInt(season) > currentYear -10){
+
+                                    switch(parseInt(season)){
+                                        case currentYear-1:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.25;
+                                            break;
+                                        case currentYear-2:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.18;
+                                            break;
+                                        case currentYear-3:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.14;
+                                            break;
+                                        case currentYear-4:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.12;
+                                            break;
+                                        case currentYear-5:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.10;
+                                            break;
+                                        case currentYear-6:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.08;
+                                            break;
+                                        case currentYear-7:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.06;
+                                            break;
+                                        case currentYear-8:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.04;
+                                            break;
+                                        case currentYear-9:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.02;
+                                            break;
+                                        case currentYear-10:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver1 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[season])) * 0.01;
+                                            break;
+                                    }
+                                }
+                                else {
+                                    //were not interested in data older than 10 years ago
+                                }
+                            }
+                        }
+
+                        return (driverDataObj);
+                    })
+                    .then(function(driverDataObj){
+
+                        driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 = 0;
+
+                        for (var season in driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season){
+                            if(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season.hasOwnProperty(season)){
+                                var currentYear = new Date().getFullYear();
+                                if (parseInt(season) > currentYear -10){
+
+                                    switch(parseInt(season)){
+                                        case currentYear-1:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.25;
+                                            break;
+                                        case currentYear-2:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.18;
+                                            break;
+                                        case currentYear-3:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.14;
+                                            break;
+                                        case currentYear-4:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.12;
+                                            break;
+                                        case currentYear-5:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.10;
+                                            break;
+                                        case currentYear-6:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.08;
+                                            break;
+                                        case currentYear-7:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.06;
+                                            break;
+                                        case currentYear-8:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.04;
+                                            break;
+                                        case currentYear-9:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.02;
+                                            break;
+                                        case currentYear-10:
+                                            driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistoryScore.driver2 += pointsLookup.getScore(parseInt(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[season])) * 0.01;
+                                            break;
+                                    }
+                                }
+                                else {
+                                    //were not interested in data older than 10 years ago
+                                }
+                            }
+                        }
+
+                        console.log('Driver data object: ', driverDataObj);
+                        resolve(driverDataObj);
+                        }
+                    );
+            });
+        }
+    };
+
+
+
+}]);
 app.config(function($routeProvider) {
     $routeProvider
         .when('/', {
@@ -90,6 +402,18 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
                 $rootScope.circuitId = raceScheduleArr[i].Circuit.circuitId;
                 $scope.round = raceScheduleArr[i].round;
                 currentRaceIndex = i;
+                //homepage background image randomizer
+                var rand = Math.abs(Math.random()*100);
+                if (rand <50){
+                    $scope.img1 = true;
+                    $scope.img2 = false;
+                }
+                else {
+                    $scope.img1 = false;
+                    $scope.img2 = true;
+                }
+                $scope.css = 'round-' + $scope.round + '.css';
+                console.log($scope.css);
                 break;
             }
         }
@@ -110,240 +434,28 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
 
     },1000);
 
-    //homepage background image randomizer
-    var rand = Math.abs(Math.random()*100);
-    if (rand <50){
-        $scope.img1 = true;
-        $scope.img2 = false;
-    }
-    else {
-        $scope.img1 = false;
-        $scope.img2 = true;
-    }
+
 
 
 }]);
-app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', '$q', 'pointsLookup', function($scope, ergast, $rootScope, $q, pointsLookup){
+app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDataObj', function($scope, ergast, $rootScope, getDriverDataObj){
 
     //switch on the back button
     $rootScope.bckHide = false;
     $rootScope.fwdHide = true;
-    $scope.circuitHistory = [];
-    var counter = 0;
+    var driverDataObj = {};
 
-    //get data for this controller from the ergast API
-    $scope.getDriverHistoricData = function() {
-        console.log('GETTING DRIVER DATA');
-        return $q(function (resolve, reject) {
-            //initially need a list of all drivers in the next grand prix
-            //TODO: the driver list for the current race is based on the previous race's drivers - currently hardcoded!!!!
-            ergast.callAPI('http://ergast.com/api/f1/2016/4/drivers.json').then(function (response) {
-                console.log(response);
-                $scope.driverArr = response.data.MRData.DriverTable.Drivers;
-                console.log($scope.driverArr);
-
-                //get each drivers history at current circuit
-                for (var i = 0; i < $scope.driverArr.length; i++) {
-
-                    //then we need each driver's historic performance at that track
-                    ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/drivers/' + $scope.driverArr[i].driverId + '/results.json')
-                        .then(function (response) {
-                            //console.log(response);
-                            $scope.circuitHistory[counter] = response.data.MRData.RaceTable.Races;
-                            //console.log($rootScope.circuitHistory);
-                            counter++;
-                            if (counter==$scope.driverArr.length){
-                                counter=0;
-                                resolve();
-                                //now we need to get the constructors data for the circuit!!!
-                                //to do that we need to know which constructor each of the drivers is currently driving for, then look up those results
-
-                                //TODO: Next challenge!!! http://ergast.com/api/f1/circuits/catalunya/constructors/mercedes/results
-                            }
-                        }, function (error) {
-                            console.log(error);
-                            reject();
-                        });
-                }
-            }, function (error) {
-            });
-        });
-    };
-
-    $scope.getDriverHistoricData().then(function(){
-        console.log('ALL DATA RETURNED', $scope.circuitHistory);
-        //work out score for each driver based on historic track record at circuit
-
-        //first create a driverData storage object from the current driverArr to store all data in one place (key: driverId)
-        $scope.driverDataObj = {};
-        for (var x=0; x<$scope.driverArr.length; x++){
-            $scope.driverDataObj[$scope.driverArr[x].driverId] = $scope.driverArr[x];
-        }
-
-        //then append the historic track performance to the object
-        for (var i=0; i<$scope.circuitHistory.length; i++){
-
-            //some drivers don't have any history at the track, so check for empty arrays
-            if ($scope.circuitHistory[i].length != 0){
-
-                //console.log($scope.circuitHistory[i][0].Results[0].Driver.driverId);
-                //in the driverDataObj, by driverID, add a new property, trackHistory, equal to the data
-                //returned for that driverId through the call to the ergastAPI (the $scope.circuitHistory object)
-                $scope.driverDataObj[$scope.circuitHistory[i][0].Results[0].Driver.driverId].trackHistory = $scope.circuitHistory[i];
-            }
-        }
-
-        //create driver score based on historic performance
-
-        for (var driver in $scope.driverDataObj){
-
-            var trackHistoryScore = 0;
-
-            //debug code
-            //console.log(driver);
-
-            if($scope.driverDataObj[driver].trackHistory == undefined){
-
-                //if the driver doesn't have any history returned, create a placeholder in the object property
-                //so we don't come unstuck trying to call a property that doesn't exist later on
-                $scope.driverDataObj[driver].trackHistory = [];
-
-                //also give the driver a trackHistoryScore property
-                $scope.driverDataObj[driver].trackHistoryScore = trackHistoryScore;
-            }
-
-            else {
-
-                for (var k = 0; k < $scope.driverDataObj[driver].trackHistory.length; k++) {
-
-                    //console.log('Season: ', $scope.driverDataObj[driver].trackHistory[k].season);
-
-                    //we only want the last 10 year's worth of track data for the algorithm
-                    var currentYear = new Date().getFullYear();
-
-                    if(parseInt($scope.driverDataObj[driver].trackHistory[k].season) < currentYear-10){
-                        //were not interested in this data
-                        //console.log('Ignore this data');
-
-                    }
-                    else {
-
-                        //here we want to weight the historic performance according to our algorithm requirements
-                        //console.log('Position: ', $scope.driverDataObj[driver].trackHistory[k].Results[0].position);
-                        switch(parseInt($scope.driverDataObj[driver].trackHistory[k].season)){
-                            case currentYear-1:
-                                //console.log('case = ', currentYear-1);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.25);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-2:
-                                //console.log('case = ', currentYear-2);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.18);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-3:
-                                //console.log('case = ', currentYear-3);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.14);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-4:
-                                //console.log('case = ', currentYear-4);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.12);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-5:
-                                //console.log('case = ', currentYear-5);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.10);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-6:
-                                //console.log('case = ', currentYear-6);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.08);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-7:
-                                //console.log('case = ', currentYear-7);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.06);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-8:
-                                //console.log('case = ', currentYear-8);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.04);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-9:
-                                //console.log('case = ', currentYear-9);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.02);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                            case currentYear-10:
-                                //console.log('case = ', currentYear-10);
-                                trackHistoryScore += (pointsLookup.getScore($scope.driverDataObj[driver].trackHistory[k].Results[0].position) * 0.01);
-                                //console.log('trackHistoryScore', trackHistoryScore);
-                                break;
-                        }
-
-                        $scope.driverDataObj[driver].trackHistoryScore = trackHistoryScore;
-
-                    }
-                }
-            }
-        }
-
-        console.log($scope.driverDataObj);
-
-        $scope.getDriverManufacturer = function() {
-            console.log("GETTING DRIVER'S MANUFACTURER DATA");
-            return $q(function (resolve, reject) {
-                //initially need the results from the last grand prix, so we can see which driver is currently driving for which constructor
-                ergast.callAPI('http://ergast.com/api/f1/current/last/results.json').then(function (response) {
-                    console.log(response);
-                    for (var driver in $scope.driverDataObj){
-                        for (var i=0; i<response.data.MRData.RaceTable.Races[0].Results.length; i++){
-                            if (driver == response.data.MRData.RaceTable.Races[0].Results[i].Driver.driverId){
-                                $scope.driverDataObj[driver].manufacturer = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.constructorId;
-                            }
-                        }
-                    }
-                    console.log("GOT DRIVER'S MANUFACTURER DATA!");
-                    console.log($scope.driverDataObj);
-
-                    //Now we have the manufacturer data appended to the driverDataObj, we now need to go and get the manufacturer
-                    //performance data for the current track
-
-                    for (var driver in $scope.driverDataObj) {
-                        ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + $scope.driverDataObj[driver].manufacturer + '/results.json')
-                            .then(function (response) {
-                                console.log("GOT HISTORIC DRIVER'S MANUFACTURER DATA!");
-                                console.log(response);
-                            }, function (error) {
-                                console.log(error);
-                            });
-                    }
-                    resolve();
-                }, function (error) {
-                    console.log(error);
-                    reject();
-                });
-            });
-        };
-
-        $scope.getDriverManufacturer().then(function(){console.log('DONE, AGAIN!');
-
-        }, function(){});
-
-    }, function(){});
-
-
-
-
-
-
-
-
+    for (var i=0; i<=21; i++) {
+        getDriverDataObj.getData(driverDataObj, i);
+    }
 
 
 
 }]);
 app.controller('driverCtrl', ['$scope', function($scope){}]);
 app.controller('constructorCtrl', ['$scope', function($scope){}]);
+
+
+
+
+
