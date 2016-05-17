@@ -408,13 +408,12 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                         for (var i=0; i<success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings.length; i++) {
 
                             if (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer == success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].Constructor.constructorId) {
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = parseInt((success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].points));
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = parseInt((success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].points)/2);
                                 driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace)/(parseInt(success.data.MRData.StandingsTable.StandingsLists[0].round));
                             }
                         }
                         //console.log('Driver data object: ', driverDataObj);
-                        resolve(driverDataObj);
-                });
+                        resolve(driverDataObj);});
             });
         }
     };
@@ -515,9 +514,9 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
     $rootScope.fwdHide = true;
     var driverDataObj = {};
     var driverNum = 0;
-    $scope.driverArr = [];
-    $scope.dc = 50;
-    $scope.st = 70;
+    $scope.dc = 40;
+    $scope.st = 40;
+
 
     //TODO: current hardcoded number of drivers in race, need to look-up...
 
@@ -533,24 +532,61 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
                     //this is the main program execution area now
 
                     //create display array
-                    for (var driver in driverDataObj){
-                        if(driverDataObj.hasOwnProperty(driver)){
-                            $scope.driverArr.push(driverDataObj[driver]);
+                    populateScores(driverDataObj);
+                    $scope.$watch('dc', function(newValue, oldValue){
+                        if (oldValue>newValue){
+                            populateScores(driverDataObj);
                         }
-                    }
-
-
-
-
-
-
-
+                        else if(oldValue<newValue){
+                            populateScores(driverDataObj);
+                        }
+                    });
+                    $scope.$watch('st', function(newValue, oldValue){
+                        if (oldValue>newValue){
+                            populateScores(driverDataObj);
+                        }
+                        else if(oldValue<newValue){
+                            populateScores(driverDataObj);
+                        }
+                    });
                 }
         })};
 
     buildObject(driverDataObj, driverNum);
 
+    var populateScores = function(driverDataObj) {
 
+        $scope.driverArr = [];
+        $scope.raceTotal = 0;
+
+        for (var driver in driverDataObj) {
+            if (driverDataObj.hasOwnProperty(driver)) {
+                driverDataObj[driver].combinedHistoryScore =
+
+                    (((100 - $scope.dc) * (driverDataObj[driver].driverCircuitHistoryScore)
+                    + (($scope.dc * driverDataObj[driver].manufacturerCircuitHistoryScore.driver1) / 2)
+                    + (($scope.dc * driverDataObj[driver].manufacturerCircuitHistoryScore.driver2)) / 2) / 100);
+
+                driverDataObj[driver].combinedSeasonScore =
+
+                    (((100 - $scope.dc) * (driverDataObj[driver].driverSeasonPointsPerRace)) / 100)
+                    + ((($scope.dc) * (driverDataObj[driver].manufacturerSeasonPointsPerRace)) / 100);
+
+                driverDataObj[driver].totalScore =
+                    ((((100 - $scope.st) * (driverDataObj[driver].combinedSeasonScore)) / 100))
+                    + ((($scope.st) * (driverDataObj[driver].combinedHistoryScore)) / 100);
+
+                $scope.raceTotal += driverDataObj[driver].totalScore;
+
+                $scope.driverArr.push(driverDataObj[driver]);
+
+            }
+
+        else
+            {
+            }
+        }
+    }
 
 
 
