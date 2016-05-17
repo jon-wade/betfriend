@@ -1,3 +1,12 @@
-<h1>This is the prediction page</h1>
-<p ng-repeat="driver in driverArr">#{{driver.permanentNumber}}: {{driver.driverId}} {{driverDataObject[driver.driverId].trackHistoryScore}}</p>
+<form>
+    Driver vs Constructor
+    <input type="range" name="dc" min="0" max="100" ng-model="dc">
+    Season vs Track
+    <input type="range" name="st" min="0" max="100" ng-model="st">
+</form>
+
+{{dc}}
+{{st}}
+
+<p ng-repeat="driver in driverArr | orderBy: '-driverCircuitHistoryScore'">DRIVER ID: {{driver.driverId}}; DRIVER CAR MANUFACTURER: {{driver.manufacturer}}; DRIVER CIRCUIT HISTORY SCORE: {{driver.driverCircuitHistoryScore * dc}}; DRIVER SEASON POINTS PER RACE: {{driver.driverSeasonPointsPerRace}}; MANUFACTURER SEASON POINTS PER RACE: {{driver.manufacturerSeasonPointsPerRace}}; MANUFACTURER CIRCUIT HISTORY SCORE (DRIVER1): {{driver.manufacturerCircuitHistoryScore.driver1}}; MANUFACTURER CIRCUIT HISTORY SCORE (DRIVER2): {{driver.manufacturerCircuitHistoryScore.driver2}}; TOTAL SCORE:</p>
 
