@@ -1,6 +1,15 @@
 var app = angular.module('app', ['ngRoute', 'ngAnimate']);
 
-app.factory('ergast', ['$http', function($http){
+
+app.run(['$window', '$rootScope', function ($window, $rootScope){
+        $rootScope.previous = function(){
+            $window.history.back();
+        };
+        $rootScope.next = function(){
+            $window.history.forward();
+        };
+}]);
+app.factory('ergast', ['$http', '$cacheFactory', function($http, $cacheFactory){
 
     return {
         callAPI: function(url){
@@ -10,7 +19,13 @@ app.factory('ergast', ['$http', function($http){
                 'method': 'GET',
                 'cache': true
             });
+        },
+
+        callCache: function(url){
+
+            return $cacheFactory.get('$http').get(url);
         }
+
     }
 }]);
 app.factory('pointsLookup', [function(){
@@ -39,24 +54,32 @@ app.factory('pointsLookup', [function(){
     }
 }]);
 app.factory('getDriverData', ['ergast', '$q', function(ergast, $q){
-    console.log('GETTING DRIVER DATA');
     return {
         getData: function() {
             return $q(function (resolve, reject) {
                 var driverArr = [];
                 //initially need a list of all drivers in the next grand prix
-                ergast.callAPI('http://ergast.com/api/f1/2016/5/drivers.json')
-                    .then(
-                        function (response) {
-                            //console.log('Response from driver list request for current race: ', response);
-                            driverArr = response.data.MRData.DriverTable.Drivers;
-                            resolve(driverArr);
-                        },
-                        function (error) {
-                            console.log('Error from driver list request for current race: ', error);
-                            reject();
-                        }
-                    );
+                if (ergast.callCache('http://ergast.com/api/f1/2016/5/drivers.json') == undefined) {
+                    console.log('Fetching driver data from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/2016/5/drivers.json')
+                        .then(
+                            function (response) {
+                                //console.log('Response from driver list request for current race: ', response);
+                                driverArr = response.data.MRData.DriverTable.Drivers;
+                                resolve(driverArr);
+                            },
+                            function (error) {
+                                console.log('Error from driver list request for current race: ', error);
+                                reject();
+                            }
+                        );
+                }
+                else {
+                    console.log('Fetching driver data from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/2016/5/drivers.json')[1]);
+                    driverArr = cache.MRData.DriverTable.Drivers;
+                    resolve(driverArr);
+                }
             });
         }
     }
@@ -69,31 +92,49 @@ app.factory('getDriverCircuitHistory', ['ergast', '$q', function(ergast, $q){
 
             return $q(function (resolve, reject) {
 
-                ergast.callAPI('http://ergast.com/api/f1/circuits/' + circuitId + '/drivers/' + driverId + '/results.json')
+                if (ergast.callCache('http://ergast.com/api/f1/circuits/' + circuitId + '/drivers/' + driverId + '/results.json') == undefined) {
+                    console.log('Fetching driver circuit history from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/circuits/' + circuitId + '/drivers/' + driverId + '/results.json')
                         .then(
                             function(response){
                                 console.log('Response from driver circuit history request call: ', response);
-                                resolve(response);
+                                var data = response.data;
+                                resolve(data);
                             }, function(error){
                                 console.log('Error from driver circuit history request call: ', error);
                                 reject();
-                            }
-                        );
+                            });
+                }
+                else {
+                    console.log('Fetching driver circuit history from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/circuits/' + circuitId + '/drivers/' + driverId + '/results.json')[1]);
+                    resolve(cache);
+                }
             });
         }
     }
 }]);
 app.factory('getDriverManufacturer', ['ergast', '$q', function(ergast, $q){
     return {
-        getData: function(driverDataObj, driverNum){
+        getData: function(){
 
             return $q(function(resolve, reject) {
 
-                ergast.callAPI('http://ergast.com/api/f1/current/last/results.json')
-                    .then(
-                        function(response) {
-                            resolve(response);
-                        }, function(error){reject();});
+                if (ergast.callCache('http://ergast.com/api/f1/current/last/results.json') == undefined) {
+                    console.log('Fetching driver manufacturer from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/current/last/results.json')
+                        .then(function (response) {
+                            var data = response.data;
+                            resolve(data);
+                        }, function (error) {
+                            reject(error);
+                        });
+                }
+                else {
+                    console.log('Fetching driver manufacturer history from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/current/last/results.json')[1]);
+                    resolve(cache);
+                }
             });
         }
     }
@@ -103,17 +144,26 @@ app.factory('getManufacturerCircuitHistory', ['$q', 'ergast', '$rootScope', func
         getData: function(driverDataObj, driverNum) {
 
             return $q(function (resolve, reject) {
-                console.log(driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer);
-                ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + '/results.json?limit=1000')
-                    .then(
-                        function(response){
-                            console.log('Response from ' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + ' circuit history request call: ' , response);
-                            resolve(response);
-                        }, function(error){
-                            console.log('Error from manufacturer circuit history request call: ', error);
-                            reject();
-                        }
-                    );
+
+                if (ergast.callCache('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + '/results.json?limit=1000') == undefined) {
+                    console.log('Fetching manufacturer circuit history from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + '/results.json?limit=1000')
+                        .then(
+                            function(response){
+                                console.log('Response from ' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + ' circuit history request call: ' , response);
+                                var data = response.data;
+                                resolve(data);
+                            }, function(error){
+                                console.log('Error from manufacturer circuit history request call: ', error);
+                                reject();
+                            }
+                        );
+                }
+                else {
+                    console.log('Fetching manufacturer circuit history from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/circuits/' + $rootScope.circuitId + '/constructors/' + driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer + '/results.json?limit=1000')[1]);
+                    resolve(cache);
+                }
             });
         }
     }
@@ -124,17 +174,26 @@ app.factory('getDriverSeasonPoints', ['ergast', '$q', function(ergast, $q){
         getData: function() {
             return $q(function (resolve, reject) {
 
-                ergast.callAPI('http://ergast.com/api/f1/current/driverStandings.json')
-                    .then(
-                        function (response) {
-                            console.log('Response from driver season points for current season: ', response);
-                            resolve(response);
-                        },
-                        function (error) {
-                            console.log('Error from driver season points for current season: ', error);
-                            reject();
-                        }
-                    );
+                if (ergast.callCache('http://ergast.com/api/f1/current/driverStandings.json') == undefined) {
+                    console.log('Fetching driver season points from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/current/driverStandings.json')
+                        .then(
+                            function (response) {
+                                console.log('Response from driver season points for current season: ', response);
+                                var data = response.data;
+                                resolve(data);
+                            },
+                            function (error) {
+                                console.log('Error from driver season points for current season: ', error);
+                                reject();
+                            }
+                        );
+                }
+                else{
+                    console.log('Fetching driver season points from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/current/driverStandings.json')[1]);
+                    resolve(cache);
+                }
             });
         }
     }
@@ -145,21 +204,29 @@ app.factory('getManufacturerSeasonPoints', ['ergast', '$q', function(ergast, $q)
         getData: function() {
             return $q(function (resolve, reject) {
 
-                ergast.callAPI('http://ergast.com/api/f1/current/constructorStandings.json')
-                    .then(
-                        function (response) {
-                            console.log('Response from manufacturer season points for current season: ', response);
-                            resolve(response);
-                        },
-                        function (error) {
-                            console.log('Error from manufacturer season points for current season: ', error);
-                            reject();
-                        }
-                    );
+                if (ergast.callCache('http://ergast.com/api/f1/current/constructorStandings.json') == undefined) {
+                    console.log('Fetching manufacturer season points from API...');
+                    ergast.callAPI('http://ergast.com/api/f1/current/constructorStandings.json')
+                        .then(
+                            function (response) {
+                                console.log('Response from manufacturer season points for current season: ', response);
+                                var data = response.data;
+                                resolve(data);
+                            },
+                            function (error) {
+                                console.log('Error from manufacturer season points for current season: ', error);
+                                reject();
+                            }
+                        );
+                }
+                else{
+                    console.log('Fetching manufacturer season points from cache...');
+                    var cache = angular.fromJson(ergast.callCache('http://ergast.com/api/f1/current/constructorStandings.json')[1]);
+                    resolve(cache);
+                }
             });
         }
     }
-
 }]);
 app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory', '$rootScope', 'pointsLookup', 'getDriverManufacturer', 'getManufacturerCircuitHistory', 'getDriverSeasonPoints', 'getManufacturerSeasonPoints', function($q, getDriverData, getDriverCircuitHistory, $rootScope, pointsLookup, getDriverManufacturer, getManufacturerCircuitHistory, getDriverSeasonPoints, getManufacturerSeasonPoints){
 
@@ -185,8 +252,8 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                     .then(function addDriverCircuitHistory(success){
                         driverDataObj[Object.keys(driverDataObj)[driverNum]].driverCircuitHistory = {};
                         driverDataObj[Object.keys(driverDataObj)[driverNum]].driverCircuitHistory.season = {};
-                        for (var i=0; i<success.data.MRData.RaceTable.Races.length; i++){
-                            driverDataObj[Object.keys(driverDataObj)[driverNum]].driverCircuitHistory.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[0].position;
+                        for (var i=0; i<success.MRData.RaceTable.Races.length; i++){
+                            driverDataObj[Object.keys(driverDataObj)[driverNum]].driverCircuitHistory.season[success.MRData.RaceTable.Races[i].season] = success.MRData.RaceTable.Races[i].Results[0].position;
                         }
                         //console.log('Driver data object: ', driverDataObj);
 
@@ -247,10 +314,10 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                     })
                     .then(function addDriverManufacturer(response){
                         //console.log('Manufacturer data:', response);
-                        for  (var i=0; i<response.data.MRData.RaceTable.Races[0].Results.length; i++){
-                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == response.data.MRData.RaceTable.Races[0].Results[i].Driver.driverId){
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.constructorId;
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerName = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.name;
+                        for  (var i=0; i<response.MRData.RaceTable.Races[0].Results.length; i++){
+                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == response.MRData.RaceTable.Races[0].Results[i].Driver.driverId){
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer = response.MRData.RaceTable.Races[0].Results[i].Constructor.constructorId;
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerName = response.MRData.RaceTable.Races[0].Results[i].Constructor.name;
                                 return(driverDataObj);
 
 
@@ -270,16 +337,16 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                         driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season = {};
 
 
-                        for (var i=0; i<success.data.MRData.RaceTable.Races.length; i++){
+                        for (var i=0; i<success.MRData.RaceTable.Races.length; i++){
 
-                            if(success.data.MRData.RaceTable.Races[i].Results[0].position != undefined) {
+                            if(success.MRData.RaceTable.Races[i].Results[0].position != undefined) {
 
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[0].position;
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver1.season[success.MRData.RaceTable.Races[i].season] = success.MRData.RaceTable.Races[i].Results[0].position;
                             }
 
-                            if(success.data.MRData.RaceTable.Races[i].Results[1] != undefined) {
+                            if(success.MRData.RaceTable.Races[i].Results[1] != undefined) {
 
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[success.data.MRData.RaceTable.Races[i].season] = success.data.MRData.RaceTable.Races[i].Results[1].position;
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerCircuitHistory.driver2.season[success.MRData.RaceTable.Races[i].season] = success.MRData.RaceTable.Races[i].Results[1].position;
                             }
 
 
@@ -393,11 +460,11 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                     .then(function addDriverSeasonPoints(success){
                         driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace = 0;
 
-                        for (var i=0; i<success.data.MRData.StandingsTable.StandingsLists[0].DriverStandings.length; i++) {
+                        for (var i=0; i<success.MRData.StandingsTable.StandingsLists[0].DriverStandings.length; i++) {
 
-                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == success.data.MRData.StandingsTable.StandingsLists[0].DriverStandings[i].Driver.driverId) {
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace = parseInt((success.data.MRData.StandingsTable.StandingsLists[0].DriverStandings[i].points));
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace = (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace)/(parseInt(success.data.MRData.StandingsTable.StandingsLists[0].round));
+                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == success.MRData.StandingsTable.StandingsLists[0].DriverStandings[i].Driver.driverId) {
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace = parseInt((success.MRData.StandingsTable.StandingsLists[0].DriverStandings[i].points));
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace = (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverSeasonPointsPerRace)/(parseInt(success.MRData.StandingsTable.StandingsLists[0].round));
                             }
                         }
                         //console.log('Driver data object: ', driverDataObj);
@@ -409,11 +476,11 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                     .then(function addManufacturerSeasonPoints(success){
                         driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = 0;
 
-                        for (var i=0; i<success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings.length; i++) {
+                        for (var i=0; i<success.MRData.StandingsTable.StandingsLists[0].ConstructorStandings.length; i++) {
 
-                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer == success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].Constructor.constructorId) {
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = parseInt((success.data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].points)/2);
-                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace)/(parseInt(success.data.MRData.StandingsTable.StandingsLists[0].round));
+                            if (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer == success.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].Constructor.constructorId) {
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = parseInt((success.MRData.StandingsTable.StandingsLists[0].ConstructorStandings[i].points)/2);
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace = (driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerSeasonPointsPerRace)/(parseInt(success.MRData.StandingsTable.StandingsLists[0].round));
                             }
                         }
                         //console.log('Driver data object: ', driverDataObj);
@@ -508,8 +575,6 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
     },1000);
 
 
-
-
 }]);
 app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDataObj', function($scope, ergast, $rootScope, getDriverDataObj){
 
@@ -518,8 +583,8 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
     $rootScope.fwdHide = true;
     var driverDataObj = {};
     var driverNum = 0;
-    $scope.dc = 40;
-    $scope.st = 40;
+    $scope.dc = 50;
+    $scope.st = 50;
 
 
     //TODO: current hardcoded number of drivers in race, need to look-up...
@@ -527,7 +592,7 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
     var buildObject = function (driverDataObj, driverNum){
         getDriverDataObj.getData(driverDataObj, driverNum)
             .then(function(response){
-                if(driverNum<5){
+                if(driverNum<21){
                     driverNum++;
                     buildObject(response, driverNum);
                 }

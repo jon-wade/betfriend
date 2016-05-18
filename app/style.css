@@ -16,7 +16,7 @@ nav ul {
     justify-content: space-between;
     margin: 0;
     background-color: black;
-    padding: 10px 0;
+    padding: 20px 0;
 }
 
 nav ul li {
@@ -147,6 +147,10 @@ div.driverItem {
     background-image: url('img/manor/manor.jpg');
 }
 
+form#predictForm {
+    margin: 0 auto 20px auto;
+    width: 200px;
+}
 
 img.driverShot {
     width: 150px;
@@ -173,4 +177,9 @@ ul.driverStats li {
 input#dc, input#st {
     height: 5px;
     width: 200px;
+}
+
+div#sliderOneContainer, div#sliderTwoContainer {
+    width: 200px;
+    text-align: center;
 }

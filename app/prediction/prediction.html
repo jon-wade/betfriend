@@ -1,8 +1,14 @@
 <form id="predictForm">
     <!--Driver Performance vs Constructor Performance-->
-    <input type="range" name="dc" id="dc" min="0" max="100" ng-model="dc">
+    <div id="sliderOneContainer">
+        <label id="sliderOne" for="dc">Driver - Constructor</label>
+        <input type="range" name="dc" id="dc" min="0" max="100" ng-model="dc">
+    </div>
     <!--Season Performance vs Track History-->
-    <input type="range" name="st" id="dc" min="0" max="100" ng-model="st">
+    <div id="sliderTwoContainer">
+        <label id="sliderTwo" for="st">Season - Track</label>
+        <input type="range" name="st" id="st" min="0" max="100" ng-model="st">
+    </div>
     <!--<p>Driver Performance %: {{100-dc}}</p>-->
     <!--<p>Constructor Performance %: {{dc}}</p>-->
     <!--<p>Season Performance %: {{100-st}}</p>-->
