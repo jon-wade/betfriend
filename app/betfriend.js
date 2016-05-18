@@ -246,10 +246,14 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                         return getDriverManufacturer.getData(driverDataObj, driverNum);
                     })
                     .then(function addDriverManufacturer(response){
+                        //console.log('Manufacturer data:', response);
                         for  (var i=0; i<response.data.MRData.RaceTable.Races[0].Results.length; i++){
                             if (driverDataObj[Object.keys(driverDataObj)[driverNum]].driverId == response.data.MRData.RaceTable.Races[0].Results[i].Driver.driverId){
                                 driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturer = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.constructorId;
+                                driverDataObj[Object.keys(driverDataObj)[driverNum]].manufacturerName = response.data.MRData.RaceTable.Races[0].Results[i].Constructor.name;
                                 return(driverDataObj);
+
+
                             }
                         }
                     })
@@ -523,7 +527,7 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
     var buildObject = function (driverDataObj, driverNum){
         getDriverDataObj.getData(driverDataObj, driverNum)
             .then(function(response){
-                if(driverNum<21){
+                if(driverNum<5){
                     driverNum++;
                     buildObject(response, driverNum);
                 }

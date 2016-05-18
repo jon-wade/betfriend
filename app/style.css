@@ -6,7 +6,7 @@ html, body {
 }
 
 body {
-    background-color: darkgrey;
+    background-color: black;
     color: white;
     font-family: 'Exo 2', Helvetica, sans-serif;
 }
@@ -90,4 +90,87 @@ table#countdown td {
 table#countdown td.black {
     background-color: black;
     color: white;
+}
+
+div#predictGrid {
+    background-color: black;
+}
+
+div.driverItem {
+    max-height: 200px;
+    margin: 5px 5px;
+    background-size: cover;
+    background-position: 50% 50%;
+}
+
+.williams {
+    background-image: url('img/williams/williams.jpg');
+}
+
+.mclaren {
+    background-image: url('img/mclaren/mclaren.jpg');
+}
+
+.mercedes {
+    background-image: url('img/mercedes/mercedes.jpg');
+}
+
+.ferrari {
+    background-image: url('img/ferrari/ferrari.jpg');
+}
+
+.red_bull {
+    background-image: url('img/red_bull/red_bull.jpg');
+}
+
+.toro_rosso {
+    background-image: url('img/toro_rosso/toro_rosso.jpg');
+}
+
+.haas {
+    background-image: url('img/haas/haas.jpg');
+}
+
+.force_india {
+    background-image: url('img/force_india/force_india.jpg');
+}
+
+.renault {
+    background-image: url('img/renault/renault.jpg');
+}
+
+.sauber {
+    background-image: url('img/sauber/sauber.jpg');
+}
+
+.manor {
+    background-image: url('img/manor/manor.jpg');
+}
+
+
+img.driverShot {
+    width: 150px;
+    height: 150px;
+    padding-top: 25px;
+    padding-left: 25px;
+}
+
+ul.driverStats {
+    background-color: rgba(0,0,0,0.75);
+    padding-left: 0;
+    position: relative;
+    top: -125px;
+    margin-left: 200px;
+}
+
+ul.driverStats li {
+    list-style: none;
+    color: white;
+    font-style: italic;
+    font-weight: 900;
+}
+
+input#dc, input#st {
+    height: 5px;
+    width: 200px;
 }
