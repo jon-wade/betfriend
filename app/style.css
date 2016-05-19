@@ -163,8 +163,8 @@ ul.driverStats {
     background-color: rgba(0,0,0,0.75);
     padding-left: 0;
     position: relative;
-    top: -125px;
-    margin-left: 200px;
+    top: -135px;
+    margin-left: 190px;
 }
 
 ul.driverStats li {
@@ -183,3 +183,9 @@ div#sliderOneContainer, div#sliderTwoContainer {
     width: 200px;
     text-align: center;
 }
+
+/*p#betfairOdds {*/
+    /*position: relative;*/
+    /*top: -180px;*/
+    /*left: 335px;*/
+/*}*/

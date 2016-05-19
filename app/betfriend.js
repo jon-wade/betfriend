@@ -544,14 +544,6 @@ app.config(function($routeProvider) {
             templateUrl: 'prediction/prediction.html',
             controller: 'predictionCtrl'
         })
-        .when('/profile/driver/:driver', {
-            templateUrl: 'driver/driverProfile.html',
-            controller: 'driverCtrl'
-        })
-        .when('/profile/constructor/:constructor', {
-            templateUrl: 'constructor/constructorProfile.html',
-            controller: 'constructorCtrl'
-        })
         .otherwise('/')});
 app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$rootScope', 'getOdds', function($scope, $location, ergast, $interval, $rootScope, getOdds){
 
@@ -711,8 +703,6 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
 
 
 }]);
-app.controller('driverCtrl', ['$scope', function($scope){}]);
-app.controller('constructorCtrl', ['$scope', function($scope){}]);
 
 
 
