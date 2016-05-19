@@ -1,6 +1,4 @@
 var app = angular.module('app', ['ngRoute', 'ngAnimate']);
-
-
 app.run(['$window', '$rootScope', function ($window, $rootScope){
         $rootScope.previous = function(){
             $window.history.back();
@@ -8,6 +6,7 @@ app.run(['$window', '$rootScope', function ($window, $rootScope){
         $rootScope.next = function(){
             $window.history.forward();
         };
+        //$rootScope.odds = getOdds();
 }]);
 app.factory('ergast', ['$http', '$cacheFactory', function($http, $cacheFactory){
 
@@ -26,6 +25,51 @@ app.factory('ergast', ['$http', '$cacheFactory', function($http, $cacheFactory){
             return $cacheFactory.get('$http').get(url);
         }
 
+    }
+}]);
+app.factory('getOdds', ['$http', '$cacheFactory', '$q', function($http, $cacheFactory, $q){
+
+    var driverOdds = {};
+    var url = "https://crossorigin.me/https://www.betfair.com";
+
+    return {
+        getdata: function(){
+            return $q(function(resolve, reject){
+                $http({
+                    'url': 'https://crossorigin.me/https://www.betfair.com/sport/motor-sport',
+                    'method': 'GET',
+                    'cache': true
+                }).then(function(response){
+                    var elements = $('<body>').html(response.data)[0];
+                    var events = elements.getElementsByClassName('ui-clickselect-container')[2].childNodes;
+                    for(var i=0; i<events.length; i++) {
+                        if (events[i].innerHTML != undefined) {
+                            if (events[i].innerHTML.includes('Monaco')) {
+                                url += events[i].children[0].getAttribute('href');
+                                //console.log(url);
+                                $http({
+                                    'url': url,
+                                    'method': 'GET',
+                                    'cache': true
+                                }).then(function (response) {
+                                    var elements = $('<body>').html(response.data)[0];
+                                    var runners = elements.getElementsByClassName("runner-name");
+                                    for (var i = 0; i < runners.length; i++) {
+                                        driverOdds[runners[i].innerHTML] = {};
+                                        driverOdds[runners[i].innerHTML].driver = runners[i].innerHTML;
+                                        driverOdds[runners[i].innerHTML].driverOdds = runners[i].nextElementSibling.childNodes[1].innerHTML;
+                                    }
+                                    //console.log(driverOdds);
+                                    return(driverOdds);
+                                }, function (error) {
+                                    //some error function here
+                                });
+                            }
+                        }
+                    }
+                return(driverOdds);}, function(error){console.log(error);});
+            resolve(driverOdds)});
+        }
     }
 }]);
 app.factory('pointsLookup', [function(){
@@ -484,7 +528,7 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                             }
                         }
                         //console.log('Driver data object: ', driverDataObj);
-                        resolve(driverDataObj);});
+                        resolve(driverDataObj);})
             });
         }
     };
@@ -509,7 +553,7 @@ app.config(function($routeProvider) {
             controller: 'constructorCtrl'
         })
         .otherwise('/')});
-app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$rootScope', function($scope, $location, ergast, $interval, $rootScope){
+app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$rootScope', 'getOdds', function($scope, $location, ergast, $interval, $rootScope, getOdds){
 
     //switch off navigation
     $rootScope.bckHide = true;
@@ -524,6 +568,10 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
     var dateNow = new Date();
     var currentRaceIndex;
     var diff;
+
+    getOdds.getdata().then(function(response){
+        $rootScope.odds = response;
+    });
 
     //get next race data from ergast API
     ergast.callAPI('http://ergast.com/api/f1/2016.json').then(function(response){
@@ -599,6 +647,8 @@ app.controller('predictionCtrl', ['$scope', 'ergast', '$rootScope', 'getDriverDa
                 else{
                     console.log('FINAL', driverDataObj);
                     //this is the main program execution area now
+
+                    console.log($rootScope.odds);
 
                     //create display array
                     populateScores(driverDataObj);
