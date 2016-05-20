@@ -53,11 +53,11 @@ div.container {
     background-position: center center;
     min-height: 100vh;
     text-align: center;
-    font-size: 1.2em;
+    font-size: 1.5em;
 }
 
 div.container p {
-    margin: 0;
+    margin: 0px;
     padding-top: 20px;
 }
 
@@ -85,8 +85,9 @@ div.container button {
 table#countdown {
     font-size: 0.75em;
     text-align: center;
-    margin: 30px auto 0 auto;
+    margin: 0 auto;
     border-collapse: collapse;
+    margin-top: 30px;
     background-color: white;
     color: black;
 }
@@ -104,7 +105,7 @@ table#countdown td.black {
 
 div#predictGrid {
     background-color: black;
-    margin-top: 190px;
+    margin-top: 165px;
 }
 
 div.driverItem {
@@ -185,110 +186,9 @@ ul.driverStats li {
     font-weight: 900;
 }
 
-/* --- sort out the range slider formating --- */
-
-/* --- firstly hide the default range sliders --- */
-
-input[type=range] {
-    -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
-    width: 100%; /* Specific width is required for Firefox. */
-    background: transparent; /* Otherwise white in Chrome */
-}
-
-input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-}
-
-input[type=range]:focus {
-    outline: none; /* Removes the blue border. */
-}
-
-input[type=range]::-ms-track {
-    width: 100%;
-    cursor: pointer;
-
-    /* Hides the slider so custom styles can be added */
-    background: transparent;
-    border-color: transparent;
-    color: transparent;
-}
-
-/* Special styling for WebKit/Blink */
-input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    border: 1px solid black;
-    height: 30px;
-    width: 16px;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
-}
-
-/* All the same stuff for Firefox */
-input[type=range]::-moz-range-thumb {
-    border: 1px solid black;
-    height: 30px;
-    width: 16px;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-}
-
-/* All the same stuff for IE */
-input[type=range]::-ms-thumb {
-    border: 1px solid black;
-    height: 30px;
-    width: 16px;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: darkgrey;
-}
-
-input[type=range]:focus::-webkit-slider-runnable-track {
-    background: darkgrey;
-}
-
-input[type=range]::-moz-range-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: darkgrey;
-}
-
-input[type=range]::-ms-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: transparent;
-    border-color: transparent;
-    color: transparent;
-}
-input[type=range]::-ms-fill-lower {
-    background: darkgrey;
-}
-
-input[type=range]:focus::-ms-fill-lower {
-    background: darkgrey;
-}
-
-input[type=range]::-ms-fill-upper {
-    background: darkgrey;
-}
-
-input[type=range]:focus::-ms-fill-upper {
-    background: darkgrey;
-}
-
 input#dc, input#st {
-    margin-top: 20px;
+    height: 5px;
+    width: 200px;
 }
 
 div#sliderOneContainer, div#sliderTwoContainer {
@@ -296,20 +196,9 @@ div#sliderOneContainer, div#sliderTwoContainer {
     text-align: center;
 }
 
-div#sliderTwoContainer {
-    margin-top: 10px;
-}
-
 div#loading {
     width: 200px;
     height: 75px;
-    margin: 200px auto;
+    margin: 300px auto;
     text-align: center;
-}
-
-@media screen and (min-width: 426px) {
-
-    /* media queries in here */
-
-
 }

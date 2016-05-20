@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" ng-app='app'>
+<head>
+    <meta charset="UTF-8">
+    <title>Betfriend: Formula 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://fonts.googleapis.com/css?family=Exo+2:400,900italic,400italic,900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="style.css">
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/angular-animate/angular-animate.js"></script>
+    <script src="betfriend.js"></script>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li ng-class="{hide: bckHide}" ng-click="previous()">&lt;&lt; PREV</li>
+            <li><h1>BetFriend: Formula 1</h1></li>
+            <li ng-class="{hide: fwdHide}">NEXT &gt;&gt;</li>
+        </ul>
+    </nav>
+    <div ng-view>
+    </div>
+
+</body>
+</html>

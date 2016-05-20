@@ -570,9 +570,8 @@ app.controller('homeCtrl', ['$scope', '$location', 'ergast', '$interval', '$root
         console.log('SUCCESS', response);
         raceScheduleArr = response.data.MRData.RaceTable.Races;
         console.log('raceScheduleArr: ', raceScheduleArr);
-
         for(var i=0; i<raceScheduleArr.length; i++){
-            var raceDate = raceScheduleArr[i].date + "T" + raceScheduleArr[i].time;
+            var raceDate = raceScheduleArr[i].date + " " + raceScheduleArr[i].time;
             raceDate = new Date(raceDate);
             diff = (raceDate - dateNow);
             //console.log(diff);
