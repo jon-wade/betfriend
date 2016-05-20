@@ -15,13 +15,13 @@
         <h1>Fetching data...</h1>
         <img src="../img/ajax-loader.gif" width="75" height="75">
     </div>
-    <div ng-repeat="driver in driverArr | orderBy: '-totalScore'" class="driverItem {{driver.manufacturer}}">
+    <div ng-repeat="driver in driverArr | orderBy: '-totalScore'" class="driverItem {{driver.manufacturer}}" ng-class="{notOne: $index>0}">
         <img class="driverShot" ng-src="../img/{{driver.manufacturer}}/{{driver.driverId}}.jpg">
         <ul class="driverStats">
             <li>P{{$index+1}}: {{driver.givenName}} {{driver.familyName}}</li>
             <li>{{driver.manufacturerName}}</li>
-            <li>Predicted Odds: {{1/(driver.totalScore / raceTotal) | number:0}}/1</li>
-            <li>Betfair Odds:</li>
+            <li ng-class="{goodOdds: (driver.betfairOdds - (raceTotal/driver.totalScore))>1, badOdds: (driver.betfairOdds - (raceTotal/driver.totalScore))<-1}">Predicted Odds: {{(raceTotal/ driver.totalScore) | number:0}} / 1</li>
+            <li ng-class="{goodOdds: (driver.betfairOdds - (raceTotal/driver.totalScore))>1, badOdds: (driver.betfairOdds - (raceTotal/driver.totalScore))<-1}">Betfair Odds: {{driver.betfairOdds | number:0}} / 1</li>
         </ul>
 
     </div>

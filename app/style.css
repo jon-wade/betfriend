@@ -105,6 +105,9 @@ table#countdown td.black {
 div#predictGrid {
     background-color: black;
     margin-top: 190px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
 }
 
 div.driverItem {
@@ -167,7 +170,7 @@ img.driverShot {
     width: 150px;
     height: 150px;
     padding-top: 25px;
-    padding-left: 25px;
+    padding-left: 15px;
 }
 
 ul.driverStats {
@@ -175,7 +178,7 @@ ul.driverStats {
     padding-left: 0;
     position: relative;
     top: -135px;
-    margin-left: 190px;
+    margin-left: 180px;
 }
 
 ul.driverStats li {
@@ -307,9 +310,43 @@ div#loading {
     text-align: center;
 }
 
-@media screen and (min-width: 426px) {
+ul.driverStats li.goodOdds {
+    color: green;
+}
+
+ul.driverStats li.badOdds {
+    color: red;
+}
+
+
+
+@media screen and (min-width: 768px) {
 
     /* media queries in here */
+    div.driverItem{
+        min-width: 48.5%;
+        float: left;
+        margin-left: 6px;
+    }
 
+}
+
+@media screen and (min-width: 1024px){
+
+    div.driverItem{
+        min-width: 48.5%;
+        float: left;
+        margin-left: 9px;
+    }
+
+}
+
+@media screen and (min-width: 1440px){
+
+    div.driverItem{
+        min-width: 48.5%;
+        float: left;
+        margin-left: 13px;
+    }
 
 }

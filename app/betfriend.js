@@ -58,8 +58,7 @@ app.factory('getOdds', ['$http', '$cacheFactory', '$q', function($http, $cacheFa
                                         driverOdds[runners[i].innerHTML] = {};
                                         driverOdds[runners[i].innerHTML].driver = runners[i].innerHTML;
                                         driverOdds[runners[i].innerHTML].driverOdds = runners[i].nextElementSibling.childNodes[1].innerHTML;
-                                    }
-                                    //console.log(driverOdds);
+                                        }
                                     return(driverOdds);
                                 }, function (error) {
                                     //some error function here
@@ -274,6 +273,10 @@ app.factory('getManufacturerSeasonPoints', ['ergast', '$q', function(ergast, $q)
 }]);
 app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory', '$rootScope', 'pointsLookup', 'getDriverManufacturer', 'getManufacturerCircuitHistory', 'getDriverSeasonPoints', 'getManufacturerSeasonPoints', function($q, getDriverData, getDriverCircuitHistory, $rootScope, pointsLookup, getDriverManufacturer, getManufacturerCircuitHistory, getDriverSeasonPoints, getManufacturerSeasonPoints){
 
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
     return {
         getData: function(driverDataObj, driverNum){
 
@@ -283,7 +286,18 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                         //create the driverDataObj
                         driverDataObj[data[driverNum].driverId] = {};
                         driverDataObj[data[driverNum].driverId].driverId= data[driverNum].driverId;
-                        driverDataObj[data[driverNum].driverId].familyName = data[driverNum].familyName;
+                        if (data[driverNum].driverId == 'jolyon_palmer'){
+                            driverDataObj[data[driverNum].driverId].familyName = 'Palmer';
+                        }
+                        else if(data[driverNum].driverId == 'max_verstappen'){
+                            driverDataObj[data[driverNum].driverId].familyName = 'Verstappen';
+                        }
+                        else if(data[driverNum].driverId == 'kevin_magnussen'){
+                            driverDataObj[data[driverNum].driverId].familyName = 'Magnussen';
+                        }
+                        else {
+                            driverDataObj[data[driverNum].driverId].familyName = capitalizeFirstLetter(data[driverNum].driverId);
+                        }
                         driverDataObj[data[driverNum].driverId].givenName = data[driverNum].givenName;
                         driverDataObj[data[driverNum].driverId].nationality = data[driverNum].nationality;
                         driverDataObj[data[driverNum].driverId].permanentNumber = data[driverNum].permanentNumber;
@@ -528,7 +542,21 @@ app.factory('getDriverDataObj', ['$q', 'getDriverData', 'getDriverCircuitHistory
                             }
                         }
                         //console.log('Driver data object: ', driverDataObj);
-                        resolve(driverDataObj);})
+                        return(driverDataObj);})
+                    .then(function(driverDataObj){
+
+                        for (odds in $rootScope.odds){
+                            if($rootScope.odds.hasOwnProperty(odds)){
+                                //console.log('Iterating through odds - ', odds);
+                                var driverFullName = driverDataObj[Object.keys(driverDataObj)[driverNum]].givenName + " " + driverDataObj[Object.keys(driverDataObj)[driverNum]].familyName;
+                                if(odds.includes(driverFullName)){
+                                    driverDataObj[Object.keys(driverDataObj)[driverNum]].betfairOdds = parseInt($rootScope.odds[odds].driverOdds);
+                                }
+                            }
+                        }
+
+                        resolve(driverDataObj);
+                    })
             });
         }
     };
