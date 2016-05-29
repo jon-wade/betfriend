@@ -44,7 +44,7 @@ app.factory('getOdds', ['$http', '$cacheFactory', '$q', function($http, $cacheFa
                     var events = elements.getElementsByClassName('ui-clickselect-container')[2].childNodes;
                     for(var i=0; i<events.length; i++) {
                         if (events[i].innerHTML != undefined) {
-                            if (events[i].innerHTML.includes('Monaco')) {
+                            if (events[i].innerHTML.includes('Canadian')) {
                                 url += events[i].children[0].getAttribute('href');
                                 //console.log(url);
                                 $http({
